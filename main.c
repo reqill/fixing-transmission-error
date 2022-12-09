@@ -104,6 +104,3 @@ int main()
 
     return 0;
 }  
-
-// q: why this code leaves weird artifacts when input file has more than 1 line?
-// a: 
