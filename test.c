@@ -67,5 +67,7 @@ int main() {
   // Free the memory allocated for the message
   free(message);
 
+  printf("\nProgram finished successfully. Press any key to exit.\n");
+  getchar();
   return 0;
 }
