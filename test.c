@@ -4,7 +4,6 @@
 #include <string.h>
 
 #define BUFFER_SIZE 32
-#define BLOCK_SIZE 4
 
 #define MESSAGE_INPUT_FILE "plik1.txt"
 #define MESSAGE_CODED_FILE "plik2.txt"
@@ -30,9 +29,12 @@
 
 unsigned char* read_message_from_file(const char *file_name, size_t *lenght);
 void write_message_to_file(const char *file_name, unsigned char *message, size_t lenght, const char *mode);
-void corrupt_message(unsigned char *message, size_t lenght);
-unsigned char* encode_message(unsigned char *message, size_t message_lenght size_t encoded_message_lenght);
-unsigned char* decode_message(unsigned char *encoded_message, size_t encoded_message_lenght);
+void corrupt_message(unsigned char *encoded_message, size_t lenght);
+void print_message(unsigned char *message, size_t lenght);
+void copy_bit(unsigned char *byte1, unsigned int source_index, unsigned char *byte2, unsigned int target_index);
+unsigned char* encode_message(unsigned char* message, size_t message_lenght);
+void correct_bits(unsigned char* transmitted_message, size_t transmitted_message_lenght);
+unsigned char* decode_message(unsigned char* encoded_message, size_t encoded_message_length);
 
 int main()
 {
@@ -43,14 +45,65 @@ int main()
     size_t message_lenght;
     unsigned char *message = read_message_from_file(MESSAGE_INPUT_FILE, &message_lenght);
 
-    // Write message to files in different formats
+    // Write message in different formats
     write_message_to_file(BINARY_MESSAGE_INPUT_FILE, message, message_lenght, WRITE_BINARY);
     write_message_to_file(NUMERIC_MESSAGE_INPUT_FILE, message, message_lenght, WRITE_NUMERIC);
+    printf("Message read from file in binary:\n");
+    print_message(message, message_lenght);
 
     // Encode the message
-    size_t encoded_message_lenght = message_lenght * BLOCK_SIZE;
-    unsigned char *coded_message = encode_message(message, message_lenght, encoded_message_lenght);
+    size_t encoded_message_lenght = message_lenght * 2;
+    unsigned char *encoded_message = encode_message(message, message_lenght);
 
+    // Write encoded message in different formats
+    write_message_to_file(MESSAGE_CODED_FILE, encoded_message, encoded_message_lenght, WRITE_TEXT);
+    write_message_to_file(BINARY_MESSAGE_CODED_FILE, encoded_message, encoded_message_lenght, WRITE_BINARY);
+    write_message_to_file(NUMERIC_MESSAGE_CODED_FILE, encoded_message, encoded_message_lenght, WRITE_NUMERIC);
+    printf("Encoded binary message:\n");
+    print_message(encoded_message, encoded_message_lenght);
+
+    // Corrupt the encoded message
+    corrupt_message(encoded_message, encoded_message_lenght);
+
+    // Write corrupted encoded message in different formats
+    write_message_to_file(MESSAGE_CORRUPTED_FILE, encoded_message, encoded_message_lenght, WRITE_TEXT);
+    write_message_to_file(BINARY_MESSAGE_CORRUPTED_FILE, encoded_message, encoded_message_lenght, WRITE_BINARY);
+    write_message_to_file(NUMERIC_MESSAGE_CORRUPTED_FILE, encoded_message, encoded_message_lenght, WRITE_NUMERIC);
+    printf("Corrupted encoded message:\n");
+    print_message(encoded_message, encoded_message_lenght);
+
+    // Read transmitted message from the file
+    size_t transmitted_message_lenght = encoded_message_lenght;
+    unsigned char* transmitted_message = encoded_message;
+
+    // Correct transmission errors
+    correct_bits(transmitted_message, transmitted_message_lenght);
+
+    // Write decoded message in different formats
+    write_message_to_file(MESSAGE_CORRECTED_FILE, transmitted_message, transmitted_message_lenght, WRITE_TEXT);
+    write_message_to_file(BINARY_MESSAGE_CORRECTED_FILE, transmitted_message, transmitted_message_lenght, WRITE_BINARY);
+    write_message_to_file(NUMERIC_MESSAGE_CORRECTED_FILE, transmitted_message, transmitted_message_lenght, WRITE_NUMERIC);
+    printf("Corrected message:\n");
+    print_message(transmitted_message, transmitted_message_lenght);
+
+    // Decode the message
+    size_t decoded_message_lenght = transmitted_message_lenght / 2;
+    unsigned char* decoded_message = decode_message(transmitted_message, transmitted_message_lenght);
+
+    // Write decoded message in different formats
+    write_message_to_file(MESSAGE_OUTPUT_FILE, decoded_message, decoded_message_lenght, WRITE_TEXT);
+    write_message_to_file(BINARY_MESSAGE_OUTPUT_FILE, decoded_message, decoded_message_lenght, WRITE_BINARY);
+    write_message_to_file(NUMERIC_MESSAGE_OUTPUT_FILE, decoded_message, decoded_message_lenght, WRITE_NUMERIC);
+    printf("Decoded message:\n");
+    print_message(decoded_message, decoded_message_lenght);
+
+    // Free the memory
+    free(message);
+    free(encoded_message);
+    free(transmitted_message);
+    free(decoded_message);
+
+    printf("Success!\n");
     return 0;
 }
 
@@ -136,9 +189,7 @@ void write_message_to_file(const char *file_name, unsigned char *message, size_t
         exit(EXIT_FAILURE);
     }
 
-    switch (mode)
-    {
-    case WRITE_BINARY:
+    if(mode == WRITE_BINARY){
         // Write binary representation of the message to the file
         for (size_t i = 0; i < lenght; i++)
         {
@@ -151,22 +202,19 @@ void write_message_to_file(const char *file_name, unsigned char *message, size_t
                 fputc(' ', file);
             }
         }
-        break;
-    case WRITE_TEXT:
+    } else if (mode == WRITE_TEXT){
         // Write the message to the file
         for (size_t i = 0; i < lenght; i++)
         {
             fputc(message[i], file);
         }
-        break;
-    case WRITE_NUMERIC:
+    } else if (mode == WRITE_NUMERIC){
         // Write the message to the file
         for (size_t i = 0; i < lenght; i++)
         {
             fprintf(file, "%d ", message[i]);
         }
-        break;
-    default:
+    } else {
         printf("Invalid mode");
         exit(EXIT_FAILURE);
     }
@@ -175,16 +223,136 @@ void write_message_to_file(const char *file_name, unsigned char *message, size_t
     fclose(file);
 }
 
-unsigned char *encode_message(unsigned char *message, size_t lenght, size_t encoded_message_lenght)
+void corrupt_message(unsigned char* encoded_message, size_t lenght) {
+  unsigned int bit_to_swap;
+
+  for (size_t i = 0; i < lenght; i++) {
+    // Generate a random number between 0 and 7 (inclusive) to select the bit to swap
+    bit_to_swap = rand() % 8;
+
+    // Toggle the selected bit using the bitwise XOR operator (^)
+    encoded_message[i] ^= 1 << bit_to_swap;
+  }
+}
+
+void print_message(unsigned char* message, size_t lenght) {
+  // Loop through the array and print each element
+  for (size_t i = 0; i < lenght; i++) {
+    printf("%c", message[i]);
+  }
+  printf("\n(%d bytes)\n\n", lenght);
+}
+
+void copy_bit(unsigned char *byte_1, unsigned int source_index, unsigned char *byte_2, unsigned int target_index) {
+    // Shift the bit in byte_1 to the right, so that it is in the least significant position
+    unsigned char bit = (*byte_1 >> source_index) & 1;
+
+    // Shift the bit to the target position in byte_2
+    bit = bit << target_index;
+
+    // Mask off the target position in byte_2 with a bitmask that has a 0 in the target position
+    // and 1s everywhere else
+    unsigned char mask = ~(1 << target_index);
+    *byte_2 &= mask;
+
+    // OR the two bytes together to copy the bit from byte_1 to byte_2
+    *byte_2 |= bit;
+}
+
+unsigned char* encode_message(unsigned char* message, size_t message_lenght)
 {
-    unsigned char *encoded_message = malloc(encoded_message_lenght * sizeof(unsigned char));
+    printf("Encoding message: ");
+    print_message(message, message_lenght);
+
+    size_t encoded_message_lenght = message_lenght * 2;
+    unsigned char* encoded_message = malloc(encoded_message_lenght * sizeof(unsigned char));
+    unsigned char p1, p2, p3, message_byte, byte = 0;
+
+    for(size_t i = 0; i < encoded_message_lenght; i++){
+        message_byte = message[i / 2];
+        byte = 0b00000000;
+
+        if(i % 2 == 0){
+            // First half of the byte for even indexes
+            copy_bit(&message_byte, 0, &byte, 3);
+            copy_bit(&message_byte, 1, &byte, 5);
+            copy_bit(&message_byte, 2, &byte, 6);
+            copy_bit(&message_byte, 3, &byte, 7);
+        } else {
+            // Second half of the byte for odd indexes 
+            copy_bit(&message_byte, 4, &byte, 3);
+            copy_bit(&message_byte, 5, &byte, 5);
+            copy_bit(&message_byte, 6, &byte, 6);
+            copy_bit(&message_byte, 7, &byte, 7);
+        }
+        
+        // Calculate the parity bits
+        p1 = ((byte >> 3) & 1) ^ ((byte >> 5) & 1) ^ ((byte >> 7) & 1);
+        p2 = ((byte >> 3) & 1) ^ ((byte >> 6) & 1) ^ ((byte >> 7) & 1);
+        p3 = ((byte >> 5) & 1) ^ ((byte >> 6) & 1) ^ ((byte >> 7) & 1);
+
+        // Add the parity bits
+        byte |= p1 << 1;
+        byte |= p2 << 2;
+        byte |= p3 << 4;
+
+        encoded_message[i] = byte;
+    }
 
     return encoded_message;
 }
 
-unsigned char *decode_message(unsigned char *encoded_message, size_t encoded_message_lenght)
+void correct_bits(unsigned char* transmitted_message, size_t transmitted_message_lenght) {
+  unsigned char message_byte, c1, c2, c3, error_index;
+
+  for (size_t i = 0; i < transmitted_message_lenght; i++) {
+    message_byte = transmitted_message[i]; 
+    error_index = 0b00000000;
+
+    // Calculate the check bits
+    c1 = (((message_byte >> 1) & 1) ^ (message_byte >> 3) & 1) ^ ((message_byte >> 5) & 1) ^ ((message_byte >> 7) & 1);
+    c2 = (((message_byte >> 2) & 1) ^ (message_byte >> 3) & 1) ^ ((message_byte >> 6) & 1) ^ ((message_byte >> 7) & 1);
+    c3 = (((message_byte >> 4) & 1) ^ (message_byte >> 5) & 1) ^ ((message_byte >> 6) & 1) ^ ((message_byte >> 7) & 1);
+
+    // Calculate the error index
+    error_index = c3 << 2 | c2 << 1 | c1;
+
+    // If the error index is not 0, then an error has occurred
+    if (error_index != 0) {
+      // Correct the error by flipping the bit at the corresponding position in the message byte
+      message_byte ^= 1 << (error_index);
+    }   
+
+    // Update the transmitted message with the corrected message byte
+    transmitted_message[i] = message_byte;
+  }
+}
+
+unsigned char* decode_message(unsigned char* encoded_message, size_t encoded_message_length)
 {
-    unsigned char *decoded_message = malloc(encoded_message_lenght * sizeof(unsigned char));
+    size_t decoded_message_length = encoded_message_length / 2;
+    unsigned char* decoded_message = malloc(decoded_message_length * sizeof(unsigned char));
+    unsigned char message_byte, byte = 0;
+
+    for(size_t i = 0; i < decoded_message_length; i++){
+        message_byte = encoded_message[i * 2];
+        byte = 0b00000000;
+
+        // First half of the byte for even indexes
+        copy_bit(&message_byte, 3, &byte, 0);
+        copy_bit(&message_byte, 5, &byte, 1);
+        copy_bit(&message_byte, 6, &byte, 2);
+        copy_bit(&message_byte, 7, &byte, 3);
+
+        message_byte = encoded_message[i * 2 + 1];
+        // Second half of the byte for odd indexes 
+        copy_bit(&message_byte, 3, &byte, 4);
+        copy_bit(&message_byte, 5, &byte, 5);
+        copy_bit(&message_byte, 6, &byte, 6);
+        copy_bit(&message_byte, 7, &byte, 7);
+
+        decoded_message[i] = byte;
+    }
 
     return decoded_message;
 }
