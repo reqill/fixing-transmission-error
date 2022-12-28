@@ -44,7 +44,7 @@ int main()
     // Read the message from the file
     size_t message_lenght;
     unsigned char *message = read_message_from_file(MESSAGE_INPUT_FILE, &message_lenght);
-    write_print_results(message, message_lenght, "Message read from file in binary", NULL, BINARY_MESSAGE_INPUT_FILE, NUMERIC_MESSAGE_INPUT_FILE);
+    write_print_results(message, message_lenght, "Message read from file", NULL, BINARY_MESSAGE_INPUT_FILE, NUMERIC_MESSAGE_INPUT_FILE);
 
     // Encode the message
     size_t encoded_message_lenght = message_lenght * 2;
@@ -225,8 +225,12 @@ void copy_bit(unsigned char *byte_1, size_t source_index, unsigned char *byte_2,
 unsigned char* encode_message(unsigned char* message, size_t message_lenght)
 {
     size_t encoded_message_lenght = message_lenght * 2;
-    unsigned char* encoded_message = malloc(encoded_message_lenght * sizeof(unsigned char));
     unsigned char p1, p2, p3, message_byte, byte = 0;
+    unsigned char* encoded_message = malloc(encoded_message_lenght * sizeof(unsigned char));
+    if(encoded_message == NULL){
+        printf("Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
 
     for(size_t i = 0; i < encoded_message_lenght; i++){
         message_byte = message[i / 2];
@@ -287,8 +291,12 @@ void correct_bits(unsigned char* transmitted_message, size_t transmitted_message
 unsigned char* decode_message(unsigned char* encoded_message, size_t encoded_message_length)
 {
     size_t decoded_message_length = encoded_message_length / 2;
-    unsigned char* decoded_message = malloc(decoded_message_length * sizeof(unsigned char));
     unsigned char message_byte, byte = 0;
+    unsigned char* decoded_message = malloc(decoded_message_length * sizeof(unsigned char));
+    if(decoded_message == NULL){
+        printf("Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
 
     for(size_t i = 0; i < decoded_message_length; i++){
         byte = 0b00000000;
