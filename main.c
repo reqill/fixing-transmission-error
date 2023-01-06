@@ -5,23 +5,23 @@
 
 #define BUFFER_SIZE 32
 
-#define MESSAGE_INPUT_FILE "plik1.txt"
-#define MESSAGE_CODED_FILE "plik2.txt"
-#define MESSAGE_CORRUPTED_FILE "plik3.txt"
-#define MESSAGE_CORRECTED_FILE "plik4.txt"
-#define MESSAGE_OUTPUT_FILE "plik5.txt"
+#define MESSAGE_INPUT_FILE "data/input/plik1.txt"
+#define MESSAGE_CODED_FILE "data/coded/plik2.txt"
+#define MESSAGE_CORRUPTED_FILE "data/corrupted/plik3.txt"
+#define MESSAGE_CORRECTED_FILE "data/corrected/plik4.txt"
+#define MESSAGE_OUTPUT_FILE "data/output/plik5.txt"
 
-#define BINARY_MESSAGE_INPUT_FILE "plik1b.txt"
-#define BINARY_MESSAGE_CODED_FILE "plik2b.txt"
-#define BINARY_MESSAGE_CORRUPTED_FILE "plik3b.txt"
-#define BINARY_MESSAGE_CORRECTED_FILE "plik4b.txt"
-#define BINARY_MESSAGE_OUTPUT_FILE "plik5b.txt"
+#define BINARY_MESSAGE_INPUT_FILE "data/input/plik1b.txt"
+#define BINARY_MESSAGE_CODED_FILE "data/coded/plik2b.txt"
+#define BINARY_MESSAGE_CORRUPTED_FILE "data/corrupted/plik3b.txt"
+#define BINARY_MESSAGE_CORRECTED_FILE "data/corrected/plik4b.txt"
+#define BINARY_MESSAGE_OUTPUT_FILE "data/output/plik5b.txt"
 
-#define NUMERIC_MESSAGE_INPUT_FILE "plik1n.txt"
-#define NUMERIC_MESSAGE_CODED_FILE "plik2n.txt"
-#define NUMERIC_MESSAGE_CORRUPTED_FILE "plik3n.txt"
-#define NUMERIC_MESSAGE_CORRECTED_FILE "plik4n.txt"
-#define NUMERIC_MESSAGE_OUTPUT_FILE "plik5n.txt"
+#define NUMERIC_MESSAGE_INPUT_FILE "data/input/plik1n.txt"
+#define NUMERIC_MESSAGE_CODED_FILE "data/coded/plik2n.txt"
+#define NUMERIC_MESSAGE_CORRUPTED_FILE "data/corrupted/plik3n.txt"
+#define NUMERIC_MESSAGE_CORRECTED_FILE "data/corrected/plik4n.txt"
+#define NUMERIC_MESSAGE_OUTPUT_FILE "data/output/plik5n.txt"
 
 #define WRITE_BINARY "write_binary"
 #define WRITE_NUMERIC "write_numeric"
@@ -84,8 +84,8 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
     size_t buffer_size = BUFFER_SIZE;
     size_t total_bytes_read = 0;
 
-    FILE *fp = fopen(file_name, "r");
-    if (fp == NULL)
+    FILE *file = fopen(file_name, "r");
+    if (file == NULL)
     {
         printf("Error opening file");
         exit(EXIT_FAILURE);
@@ -101,7 +101,7 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
         }
 
         // Read a chunk from the file
-        size_t bytes_read = fread(chunk, sizeof(unsigned char), buffer_size, fp);
+        size_t bytes_read = fread(chunk, sizeof(unsigned char), buffer_size, file);
         if (bytes_read == 0)
         {
             // End of file reached
@@ -135,7 +135,7 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
         free(chunk);
     }
     *lenght = total_bytes_read;
-    fclose(fp);
+    fclose(file);
 
     return message;
 }
