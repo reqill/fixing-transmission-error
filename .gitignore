@@ -1,2 +1,10 @@
 .vscode
 vcpkg
+
+/data/input/plik1n.txt
+/data/input/plik1b.txt
+
+/data/coded/*
+/data/corrected/*
+/data/corrupted/*
+/data/output/*
