@@ -27,14 +27,16 @@
 #define WRITE_NUMERIC "write_numeric"
 #define WRITE_TEXT "write_text"
 
-void write_message_to_file(const char *file_name, unsigned char *message, size_t lenght, const char *mode);
-void corrupt_message(unsigned char *encoded_message, size_t lenght);
-void write_print_results(unsigned char *message, size_t lenght, char* title, const char* text_file, const char* binary_file, const char* numeric_file);
-void copy_bit(unsigned char *byte1, size_t source_index, unsigned char *byte2, size_t target_index);
-void correct_bits(unsigned char* transmitted_message, size_t transmitted_message_lenght);
-unsigned char* read_message_from_file(const char *file_name, size_t *lenght);
-unsigned char* encode_message(unsigned char* message, size_t message_lenght);
-unsigned char* decode_message(unsigned char* encoded_message, size_t encoded_message_length);
+typedef unsigned char byte_t;
+
+void write_message_to_file(const char *file_name, byte_t *message, size_t lenght, const char *mode);
+void corrupt_message(byte_t *encoded_message, size_t lenght);
+void write_print_results(byte_t *message, size_t lenght, char* title, const char* text_file, const char* binary_file, const char* numeric_file);
+void copy_bit(byte_t *byte1, size_t source_index, byte_t *byte2, size_t target_index);
+void correct_bits(byte_t* transmitted_message, size_t transmitted_message_lenght);
+byte_t* read_message_from_file(const char *file_name, size_t *lenght);
+byte_t* encode_message(byte_t* message, size_t message_lenght);
+byte_t* decode_message(byte_t* encoded_message, size_t encoded_message_length);
 
 int main()
 {
@@ -43,12 +45,12 @@ int main()
 
     // Read the message from the file
     size_t message_lenght;
-    unsigned char *message = read_message_from_file(MESSAGE_INPUT_FILE, &message_lenght);
+    byte_t *message = read_message_from_file(MESSAGE_INPUT_FILE, &message_lenght);
     write_print_results(message, message_lenght, "Message read from file", NULL, BINARY_MESSAGE_INPUT_FILE, NUMERIC_MESSAGE_INPUT_FILE);
 
     // Encode the message
     size_t encoded_message_lenght = message_lenght * 2;
-    unsigned char *encoded_message = encode_message(message, message_lenght);
+    byte_t *encoded_message = encode_message(message, message_lenght);
     write_print_results(encoded_message, encoded_message_lenght, "Encoded binary message", MESSAGE_CODED_FILE, BINARY_MESSAGE_CODED_FILE, NUMERIC_MESSAGE_CODED_FILE);
 
     // Corrupt the encoded message
@@ -57,14 +59,14 @@ int main()
 
     // Correct transmission errors
     size_t transmitted_message_lenght = encoded_message_lenght;
-    unsigned char* transmitted_message = encoded_message;
+    byte_t* transmitted_message = encoded_message;
 
     correct_bits(transmitted_message, transmitted_message_lenght);
     write_print_results(transmitted_message, transmitted_message_lenght, "Corrected message", MESSAGE_CORRECTED_FILE, BINARY_MESSAGE_CORRECTED_FILE, NUMERIC_MESSAGE_CORRECTED_FILE);
 
     // Decode the message
     size_t decoded_message_lenght = transmitted_message_lenght / 2;
-    unsigned char* decoded_message = decode_message(transmitted_message, transmitted_message_lenght);
+    byte_t* decoded_message = decode_message(transmitted_message, transmitted_message_lenght);
     write_print_results(decoded_message, decoded_message_lenght, "Decoded message", MESSAGE_OUTPUT_FILE, BINARY_MESSAGE_OUTPUT_FILE, NUMERIC_MESSAGE_OUTPUT_FILE);
 
     // Free the memory
@@ -78,9 +80,9 @@ int main()
 }
 
 // Read the message from the file using buffer for memory allocation
-unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
+byte_t *read_message_from_file(const char *file_name, size_t *lenght)
 {
-    unsigned char *message = NULL;
+    byte_t *message = NULL;
     size_t buffer_size = BUFFER_SIZE;
     size_t total_bytes_read = 0;
 
@@ -93,7 +95,7 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
 
     while (1)
     {
-        unsigned char *chunk = malloc(buffer_size * sizeof(unsigned char));
+        byte_t *chunk = malloc(buffer_size * sizeof(byte_t));
         if (chunk == NULL)
         {
             printf("Error allocating memory");
@@ -101,7 +103,7 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
         }
 
         // Read a chunk from the file
-        size_t bytes_read = fread(chunk, sizeof(unsigned char), buffer_size, file);
+        size_t bytes_read = fread(chunk, sizeof(byte_t), buffer_size, file);
         if (bytes_read == 0)
         {
             // End of file reached
@@ -110,7 +112,7 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
         if (bytes_read < buffer_size)
         {
             // Resize the chunk to the actual number of bytes read
-            chunk = realloc(chunk, bytes_read * sizeof(unsigned char));
+            chunk = realloc(chunk, bytes_read * sizeof(byte_t));
             if (chunk == NULL)
             {
                 printf("Error allocating memory");
@@ -119,7 +121,7 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
         }
 
         // Reallocate the message buffer to make room for the new chunk
-        message = realloc(message, (total_bytes_read + bytes_read) * sizeof(unsigned char));
+        message = realloc(message, (total_bytes_read + bytes_read) * sizeof(byte_t));
         if (message == NULL)
         {
             printf("Error allocating memory");
@@ -141,7 +143,7 @@ unsigned char *read_message_from_file(const char *file_name, size_t *lenght)
 }
 
 // Write the message to the file in binary, numeric or text format
-void write_message_to_file(const char *file_name, unsigned char *message, size_t lenght, const char *mode)
+void write_message_to_file(const char *file_name, byte_t *message, size_t lenght, const char *mode)
 {
     FILE *file = fopen(file_name, "w");
     if (file == NULL)
@@ -183,7 +185,7 @@ void write_message_to_file(const char *file_name, unsigned char *message, size_t
 }
 
 // Correct one random bit in every byte of the message
-void corrupt_message(unsigned char* encoded_message, size_t lenght) {
+void corrupt_message(byte_t* encoded_message, size_t lenght) {
   size_t bit_to_swap;
 
   for (size_t i = 0; i < lenght; i++) {
@@ -193,7 +195,7 @@ void corrupt_message(unsigned char* encoded_message, size_t lenght) {
 }
 
 // Write the message to the console and to the specified files
-void write_print_results(unsigned char* message, size_t lenght, char* title, const char* text_file, const char* binary_file, const char* numeric_file) {
+void write_print_results(byte_t* message, size_t lenght, char* title, const char* text_file, const char* binary_file, const char* numeric_file) {
     if(text_file != NULL)
         write_message_to_file(text_file, message, lenght, WRITE_TEXT);
     if(binary_file != NULL)
@@ -209,12 +211,12 @@ void write_print_results(unsigned char* message, size_t lenght, char* title, con
 }
 
 // Copy a bit from one byte to another
-void copy_bit(unsigned char *byte_1, size_t source_index, unsigned char *byte_2, size_t target_index) {
-    unsigned char bit = (*byte_1 >> source_index) & 1;
+void copy_bit(byte_t *byte_1, size_t source_index, byte_t *byte_2, size_t target_index) {
+    byte_t bit = (*byte_1 >> source_index) & 1;
     bit = bit << target_index;
 
     // Mask off the target position in byte_2 with a bitmask that has a 0 in the target position and 1s everywhere else
-    unsigned char mask = ~(1 << target_index);
+    byte_t mask = ~(1 << target_index);
     *byte_2 &= mask;
 
     // OR the two bytes together to copy the bit from byte_1 to byte_2
@@ -222,11 +224,11 @@ void copy_bit(unsigned char *byte_1, size_t source_index, unsigned char *byte_2,
 }
 
 // Encode a message using the Hamming(7,4) code where each byte is encoded as two subsequent bytes
-unsigned char* encode_message(unsigned char* message, size_t message_lenght)
+byte_t* encode_message(byte_t* message, size_t message_lenght)
 {
     size_t encoded_message_lenght = message_lenght * 2;
-    unsigned char p1, p2, p3, message_byte, byte = 0;
-    unsigned char* encoded_message = malloc(encoded_message_lenght * sizeof(unsigned char));
+    byte_t p1, p2, p3, message_byte, byte = 0;
+    byte_t* encoded_message = malloc(encoded_message_lenght * sizeof(byte_t));
     if(encoded_message == NULL){
         printf("Error allocating memory");
         exit(EXIT_FAILURE);
@@ -267,8 +269,8 @@ unsigned char* encode_message(unsigned char* message, size_t message_lenght)
 }
 
 // Corrects the errors in the transmitted message using the Hamming (7,4) code
-void correct_bits(unsigned char* transmitted_message, size_t transmitted_message_lenght) {
-  unsigned char message_byte, c1, c2, c3, error_index;
+void correct_bits(byte_t* transmitted_message, size_t transmitted_message_lenght) {
+  byte_t message_byte, c1, c2, c3, error_index;
 
   for (size_t i = 0; i < transmitted_message_lenght; i++) {
     message_byte = transmitted_message[i]; 
@@ -288,11 +290,11 @@ void correct_bits(unsigned char* transmitted_message, size_t transmitted_message
 }
 
 // Decode the message by removing the parity bits and joining the two halves of each byte from two successive in the encoded message
-unsigned char* decode_message(unsigned char* encoded_message, size_t encoded_message_length)
+byte_t* decode_message(byte_t* encoded_message, size_t encoded_message_length)
 {
     size_t decoded_message_length = encoded_message_length / 2;
-    unsigned char message_byte, byte = 0;
-    unsigned char* decoded_message = malloc(decoded_message_length * sizeof(unsigned char));
+    byte_t message_byte, byte = 0;
+    byte_t* decoded_message = malloc(decoded_message_length * sizeof(byte_t));
     if(decoded_message == NULL){
         printf("Error allocating memory");
         exit(EXIT_FAILURE);
